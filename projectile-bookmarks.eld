@@ -1,0 +1,1 @@
+("~/code/Obsidian/smithy-build-result/")

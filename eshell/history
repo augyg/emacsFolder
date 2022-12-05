@@ -1,0 +1,20 @@
+l
+cls
+ls
+cd /home/laz*/code
+l
+cd Obsidian/OSOS
+;
+lds
+ls
+cd gop
+ob run
+kill 2095708
+pkill ghc
+ob hoogle
+cd ~/code/youtube/
+cd ob-example/
+ob run
+ob run
+ghci
+nix-shell -p ghc

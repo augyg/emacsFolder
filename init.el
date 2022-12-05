@@ -1,0 +1,131 @@
+;; SolveX Emacs Config template
+;; Created by Kyle Jensen and Galen Sprout
+
+
+(require 'package)
+
+
+;; Configure editor settings
+(custom-set-faces)
+(custom-set-variables
+ '(ansi-color-faces-vector
+   [default default default italic underline success warning error])
+ '(custom-enabled-themes '(wheatgrass))
+ '(package-selected-packages
+   '(erc-h1-nicks use-package nix-mode projectile auto-complete lsp-mode lsp-haskell haskell-mode)))
+
+
+;; Set list of package archives to search
+(setq package-archives '(("melpa" . "http://melpa.org/packages/")
+			 ("elpa" . "http://tromey.com/elpa/")
+			 ("gnu" . "http://elpa.gnu.org/packages/")))
+
+;; Set list of packages we want to install
+(setq package-list '(use-package
+		     auto-complete
+		     projectile
+		     lsp-mode
+		     lsp-haskell
+		     haskell-mode
+		     nix-mode
+		     ))
+
+;; Activate all packages
+(package-initialize)
+
+;; Fetch list of available packages
+(package-refresh-contents)
+
+;; Install missing packages
+(dolist (package package-list)
+  (unless (package-installed-p package)
+    (package-install package)))
+
+
+;; Configure Projectile and set key-binds
+(projectile-mode +1)
+(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+
+
+;; Configure default auto-complete settings
+(ac-config-default)
+
+
+;; Initialize lsp-mode for Haskell
+(require 'lsp-mode)
+(require 'lsp-haskell)
+(add-hook 'haskell-mode-hook #'lsp-mode)
+
+
+;; Initialize nix-mode for Nix scripts
+(require 'nix-mode)
+(add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
+
+
+;; List of IRC channels for erc
+(setq channels-list '(("#reflex-frp" "#haskell")))
+
+;; Auth sources to search
+;; Create this file with contents: machine irc.freenode.net login <nickname> password <password>
+(setq auth-sources '("~/.emacs.d/.authinfo"))
+
+;; Configure erc to connect to channels
+(use-package erc
+	     :custom
+	     (erc-autojoin-channels-alist channels-list)
+	     (erc-autojoin-timing 'ident)
+	     (erc-fill-function 'erc-fill-static)
+	     (erc-fill-static-center 22)
+	     (erc-hide-list '("JOIN" "PART" "QUIT"))
+	     (erc-lurker-hide-list '("JOIN" "PART" "QUIT"))
+	     (erc-prompt-for-nickserv-password nil)
+	     (erc-server-reconnect-attempts 5)
+	     (erc-server-reconnect-timeout 3)
+	     (erc-track-exclude-types '("JOIN" "MODE" "NICK" "PART" "QUIT"
+					"324" "329" "332" "353" "477"))
+	     :config
+	     (add-to-list 'erc-modules 'notifications)
+	     (add-to-list 'erc-modules 'spelling)
+	     (erc-services-mode 1)
+	     (erc-update-modules))
+
+;; Function to start erc if it hasn't already started
+(defun my/erc-start-or-switch ()
+  "Connects to ERC, or switch to last buffer."
+  (interactive)
+  (if (get-buffer "irc.freenode.net:6667")
+      (erc-track-switch-buffer 1)
+    (when (y-or-n-p "Start ERC? ")
+      (erc :server "irc.freenode.net" :port 6667 :nick "rhemsuda"))))
+
+;; Function to notify based on a user's response
+(defun my/erc-notify (nickname message)
+  "Displays a notification message for ERC."
+  (let* ((channel (buffer-name))
+	 (nick (erc-h1-nicks-trim-irc-nick nickname))
+	 (title (if (string-match-p (concat "^" nickname) channel)
+		    nick
+		  (concat nick " (" channel ")")))
+	 (msg (s-trim (s-collapse-whitespace message))))
+    (alert (concat nick ": " msg) :title title)))
+
+;; Function to get the current number of users on a channel
+(defun my/erc-count-users ()
+  "Displays the number of users connected on the current channel."
+  (interactive)
+  (if (get-buffer "irc.freenode.net:6667")
+      (let ((channel (erc-default-target)))
+	(if (and channel (erc-channel-p channel))
+	    (message "%d users are online on %s"
+		     (hash-table-count erc-channel-users)
+		     channel)
+	  (user-error "The current buffer is not a channel")))
+    (user-error "You must first start ERC")))
+
+;; Set global keybinding for starting erc
+(global-set-key (kbd "C-x r c") 'my/erc-start-or-switch)
+
+
+
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
